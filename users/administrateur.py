@@ -1,22 +1,35 @@
 from users.utilisateur import Utilisateur
+from core.reservation import Reservation
+
 
 class Administrateur(Utilisateur):
     """
-    Administrateur : peut générer et valider les emplois du temps.
+    Administrateur : gère manuellement l'emploi du temps et les réservations.
     """
 
-    def generer_planning(self, emploi_du_temps, seances_a_ajouter):
-        """
-        Ajoute plusieurs séances à l'emploi du temps.
-        """
-        for seance in seances_a_ajouter:
-            emploi_du_temps.ajouter_seance(seance)
+    def __init__(self, identifiant: int, nom: str, emploi_du_temps):
+        super().__init__(identifiant, nom)
+        self._emploi_du_temps = emploi_du_temps
 
-    def valider_reservation(self, reservation):
-        """
-        Valide ou rejette une demande de réservation.
-        """
-        reservation.validee = True
+    # --------------------
+    # Gestion des séances
+    # --------------------
+    def ajouter_seance(self, seance):
+        self._emploi_du_temps.ajouter_seance(seance)
 
-    def consulter_emploi_du_temps(self, emploi_du_temps):
-        return emploi_du_temps.seances
+    def supprimer_seance(self, seance):
+        if seance in self._emploi_du_temps.seances:
+            self._emploi_du_temps.seances.remove(seance)
+
+    def consulter_emploi_du_temps(self):
+        return self._emploi_du_temps.seances
+
+    # --------------------
+    # Gestion des réservations
+    # --------------------
+    def valider_reservation(self, reservation: Reservation):
+        reservation.accepter()
+
+    def rejeter_reservation(self, reservation: Reservation):
+        reservation.rejeter()
+

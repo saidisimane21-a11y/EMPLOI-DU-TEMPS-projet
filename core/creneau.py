@@ -49,6 +49,18 @@ class Creneau:
             or autre.heure_fin <= self.heure_debut
         )
 
+    def contient(self, autre: "Creneau") -> bool:
+      """
+      Retourne True si le créneau 'autre' est entièrement inclus dans self.
+      """
+      if self.jour != autre.jour:
+          return False
+
+      return (
+          self.heure_debut <= autre.heure_debut
+          and self.heure_fin >= autre.heure_fin
+      )
+
     # --------------------
     # Méthodes utilitaires
     # --------------------
@@ -70,9 +82,8 @@ class Creneau:
                 "L'heure de début doit être strictement inférieure à l'heure de fin."
             )
 
-    # --------------------
     # Représentations
-    # --------------------
+
     def __str__(self):
         return f"{self.jour.capitalize()} {self.heure_debut} - {self.heure_fin}"
 

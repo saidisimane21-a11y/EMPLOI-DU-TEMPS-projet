@@ -1,3 +1,6 @@
+from core import creneau
+
+
 class Salle:
     """
     Représente une salle physique (TD, TP ou Amphithéâtre).
@@ -6,7 +9,7 @@ class Salle:
     TYPES_VALIDES = {"amphi", "td", "tp"}
 
     def __init__(self, identifiant: int, nom: str, capacite: int,
-                 type_salle: str, equipements=None):
+                 type_salle: str, equipements=None, disponibilites=None):
 
         self._valider_identifiant(identifiant)
         self._valider_nom(nom)
@@ -18,7 +21,7 @@ class Salle:
         self._capacite = capacite
         self._type = type_salle.lower()
         self._equipements = set(equipements) if equipements else set()
-
+        self._disponibilites = list(disponibilites) if disponibilites else []
   
     # Propriétés (lecture seule)
     
@@ -41,8 +44,19 @@ class Salle:
     @property
     def equipements(self):
         return set(self._equipements)
+    
+    @property
+    def disponibilites(self):
+        return list(self._disponibilites)
 
-  
+    # Gestion des disponibilités
+    def ajouter_disponibilite(self, creneau: creneau.Creneau) -> None:
+        self._disponibilites.append(creneau)
+
+    def est_disponible(self, creneau: creneau.Creneau) -> bool:
+        return all(not dispo.chevauche(creneau) for dispo in self._disponibilites)
+
+
     # Logique métier
     
     def est_compatible(self, effectif: int, equipements_requis=None) -> bool:
@@ -57,7 +71,8 @@ class Salle:
 
         return True
 
-    
+
+
     # Validation interne
   
     def _valider_identifiant(self, identifiant):

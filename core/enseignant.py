@@ -1,5 +1,4 @@
 from core.creneau import Creneau
-from core.matiere import Matiere
 
 
 class Enseignant:
@@ -16,9 +15,8 @@ class Enseignant:
         self._matieres = list(matieres) if matieres else []
         self._disponibilites = list(disponibilites) if disponibilites else []
 
-
     # Propriétés (lecture seule)
-    
+
     @property
     def id(self):
         return self._id
@@ -35,31 +33,36 @@ class Enseignant:
     def disponibilites(self):
         return list(self._disponibilites)
 
-    
-    # Logique métier 
-  
+    # Logique métier
+
     def est_disponible(self, creneau: Creneau) -> bool:
         """
-        Vérifie si l'enseignant est disponible sur un créneau donné.
+        Vérifie si le créneau demandé est inclus
+        dans au moins une disponibilité de l'enseignant.
         """
-        return any(
-            dispo.chevauche(creneau) for dispo in self._disponibilites
-        )
+        if not isinstance(creneau, Creneau):
+            raise TypeError("creneau doit être une instance de Creneau")
 
-  
+        return any(
+            dispo.contient(creneau) for dispo in self._disponibilites
+        )
+    def ajouter_disponibilite(self, creneau):
+      self._disponibilites.append(creneau)
+
     # Validation interne
-    
+
     def _valider_identifiant(self, identifiant):
         if not isinstance(identifiant, int) or identifiant <= 0:
-            raise ValueError("L'identifiant de l'enseignant doit être un entier positif.")
+            raise ValueError(
+                "L'identifiant de l'enseignant doit être un entier positif.")
 
     def _valider_nom(self, nom):
         if not isinstance(nom, str) or not nom.strip():
-            raise ValueError("Le nom de l'enseignant doit être une chaîne non vide.")
+            raise ValueError(
+                "Le nom de l'enseignant doit être une chaîne non vide.")
 
-    
     # Représentation
-    
+
     def __str__(self):
         return f"Enseignant {self.nom}"
 

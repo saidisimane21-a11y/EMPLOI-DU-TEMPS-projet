@@ -1,7 +1,7 @@
 from core.creneau import Creneau
 from core.salle import Salle
 from core.matiere import Matiere
-from core.groupe import GroupeEtudiant
+from core.groupe_etudiant import GroupeEtudiant
 from core.enseignant import Enseignant
 
 

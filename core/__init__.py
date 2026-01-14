@@ -1,7 +1,7 @@
 # Package core, permet les imports depuis le dossier core
 from .salle import Salle
 from .enseignant import Enseignant
-from .groupe import GroupeEtudiant
+from .groupe_etudiant import GroupeEtudiant
 from .matiere import Matiere
 from .creneau import Creneau
 from .seance import Seance
