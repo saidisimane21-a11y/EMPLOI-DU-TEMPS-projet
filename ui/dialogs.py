@@ -1,8 +1,559 @@
-from PyQt6.QtWidgets import QMessageBox
+# -*- coding: utf-8 -*-
+from PySide6.QtWidgets import (
+    QDialog, QFormLayout, QLineEdit, QPushButton, 
+    QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QMessageBox
+)
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QFont
+from datetime import datetime
+from core.salle import Salle
+from core.matiere import Matiere
+from core.groupe_etudiant import GroupeEtudiant
+from core.creneau import Creneau
+from core.enseignant import Enseignant
+from core.seance import Seance
 
 
-def afficher_message(parent, titre, texte):
-    msg = QMessageBox(parent)
-    msg.setWindowTitle(titre)
-    msg.setText(texte)
-    msg.exec()
+class DialogAjouterSeance(QDialog):
+    """Dialogue pour ajouter une nouvelle séance à l'emploi du temps."""
+    
+    def __init__(self, parent, emploi_du_temps):
+        super().__init__(parent)
+        self.edt = emploi_du_temps
+        self.setWindowTitle("➕ Ajouter une séance")
+        self.setMinimumWidth(450)
+        self.init_ui()
+        self._apply_style()
+        
+    def init_ui(self):
+        """Initialise l'interface du dialogue."""
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        # Titre
+        title_label = QLabel("📝 Nouvelle Séance")
+        title_font = QFont()
+        title_font.setPointSize(14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # Formulaire
+        form_layout = QFormLayout()
+        layout.addLayout(form_layout)
+        
+        # Matière
+        self.input_matiere = QLineEdit()
+        self.input_matiere.setPlaceholderText("Ex: Algorithmique")
+        form_layout.addRow("📚 Matière:", self.input_matiere)
+        
+        # Code matière
+        self.input_code = QLineEdit()
+        self.input_code.setPlaceholderText("Ex: INFO101")
+        form_layout.addRow("🔢 Code:", self.input_code)
+        
+        # Type de cours
+        self.combo_type_cours = QComboBox()
+        self.combo_type_cours.addItems(["cours", "td", "tp"])
+        form_layout.addRow("📖 Type:", self.combo_type_cours)
+        
+        # Enseignant
+        self.input_enseignant = QLineEdit()
+        self.input_enseignant.setPlaceholderText("Ex: Dr. Dupont")
+        form_layout.addRow("👨‍🏫 Enseignant:", self.input_enseignant)
+        
+        # Groupe
+        self.input_groupe = QLineEdit()
+        self.input_groupe.setPlaceholderText("Ex: G1 Info")
+        form_layout.addRow("👥 Groupe:", self.input_groupe)
+        
+        # Filière
+        self.input_filiere = QLineEdit()
+        self.input_filiere.setPlaceholderText("Ex: Informatique")
+        form_layout.addRow("🎓 Filière:", self.input_filiere)
+        
+        # Effectif
+        self.input_effectif = QLineEdit()
+        self.input_effectif.setPlaceholderText("Ex: 30")
+        form_layout.addRow("📊 Effectif:", self.input_effectif)
+        
+        # Salle
+        self.input_salle = QLineEdit()
+        self.input_salle.setPlaceholderText("Ex: Amphi 101")
+        form_layout.addRow("🏛️ Salle:", self.input_salle)
+        
+        # Capacité salle
+        self.input_capacite = QLineEdit()
+        self.input_capacite.setPlaceholderText("Ex: 100")
+        form_layout.addRow("🪑 Capacité:", self.input_capacite)
+        
+        # Type de salle
+        self.combo_type_salle = QComboBox()
+        self.combo_type_salle.addItems(["amphi", "td", "tp", "labo"])
+        form_layout.addRow("🏢 Type salle:", self.combo_type_salle)
+        
+        # Jour
+        self.combo_jour = QComboBox()
+        self.combo_jour.addItems([
+            "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"
+        ])
+        form_layout.addRow("📅 Jour:", self.combo_jour)
+        
+        # Heure début
+        self.input_debut = QLineEdit()
+        self.input_debut.setPlaceholderText("HH:MM (ex: 08:00)")
+        form_layout.addRow("🕐 Heure début:", self.input_debut)
+        
+        # Heure fin
+        self.input_fin = QLineEdit()
+        self.input_fin.setPlaceholderText("HH:MM (ex: 10:00)")
+        form_layout.addRow("🕑 Heure fin:", self.input_fin)
+        
+        # Boutons
+        btn_layout = QHBoxLayout()
+        layout.addLayout(btn_layout)
+        
+        btn_annuler = QPushButton("❌ Annuler")
+        btn_annuler.clicked.connect(self.reject)
+        btn_layout.addWidget(btn_annuler)
+        
+        btn_ajouter = QPushButton("✅ Ajouter")
+        btn_ajouter.clicked.connect(self.ajouter_seance)
+        btn_layout.addWidget(btn_ajouter)
+        
+    def ajouter_seance(self):
+        """Ajoute la séance à l'emploi du temps après validation."""
+        try:
+            # Validation des champs obligatoires
+            if not all([
+                self.input_matiere.text().strip(),
+                self.input_code.text().strip(),
+                self.input_enseignant.text().strip(),
+                self.input_groupe.text().strip(),
+                self.input_filiere.text().strip(),
+                self.input_salle.text().strip(),
+                self.input_debut.text().strip(),
+                self.input_fin.text().strip()
+            ]):
+                QMessageBox.warning(
+                    self, 
+                    "⚠️ Champs manquants",
+                    "Veuillez remplir tous les champs obligatoires."
+                )
+                return
+            
+            # Validation des heures
+            try:
+                h_debut = datetime.strptime(
+                    self.input_debut.text().strip()[:5], "%H:%M"
+                ).time()
+                h_fin = datetime.strptime(
+                    self.input_fin.text().strip()[:5], "%H:%M"
+                ).time()
+            except ValueError:
+                QMessageBox.warning(
+                    self,
+                    "⚠️ Format invalide",
+                    "Le format des heures doit être HH:MM (ex: 08:00)"
+                )
+                return
+            
+            # Validation de l'effectif et capacité
+            try:
+                effectif = int(self.input_effectif.text().strip()) if self.input_effectif.text().strip() else 30
+                capacite = int(self.input_capacite.text().strip()) if self.input_capacite.text().strip() else 100
+            except ValueError:
+                QMessageBox.warning(
+                    self,
+                    "⚠️ Valeur invalide",
+                    "L'effectif et la capacité doivent être des nombres entiers."
+                )
+                return
+            
+            # Créer les objets
+            creneau = Creneau(
+                self.combo_jour.currentText(),
+                h_debut,
+                h_fin
+            )
+            
+            salle = Salle(
+                0,  # ID auto-généré
+                self.input_salle.text().strip(),
+                capacite,
+                self.combo_type_salle.currentText(),
+                []  # Équipements (pour simplifier)
+            )
+            
+            groupe = GroupeEtudiant(
+                0,  # ID auto-généré
+                self.input_groupe.text().strip(),
+                self.input_filiere.text().strip(),
+                effectif
+            )
+            
+            matiere = Matiere(
+                self.input_code.text().strip(),
+                self.input_matiere.text().strip(),
+                self.combo_type_cours.currentText(),
+                2,  # Heures par semaine par défaut
+                []  # Équipements requis (pour simplifier)
+            )
+            
+            enseignant = Enseignant(
+                0,  # ID auto-généré
+                self.input_enseignant.text().strip(),
+                [matiere],
+                [creneau]
+            )
+            
+            seance = Seance(matiere, enseignant, groupe, salle, creneau)
+            
+            # Ajouter la séance
+            self.edt.ajouter_seance(seance)
+            
+            # Message de succès
+            QMessageBox.information(
+                self,
+                "✅ Succès",
+                "La séance a été ajoutée avec succès!"
+            )
+            
+            self.accept()
+            
+        except ValueError as e:
+            QMessageBox.critical(
+                self,
+                "❌ Erreur",
+                f"Impossible d'ajouter la séance:\n{str(e)}"
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "❌ Erreur inattendue",
+                f"Une erreur s'est produite:\n{str(e)}"
+            )
+    
+    def _apply_style(self):
+        """Applique un style au dialogue."""
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #f5f5f5;
+            }
+            QLabel {
+                color: #333;
+            }
+            QLineEdit, QComboBox {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: white;
+                min-height: 25px;
+            }
+            QLineEdit:focus, QComboBox:focus {
+                border: 2px solid #2196F3;
+            }
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-height: 35px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:pressed {
+                background-color: #0D47A1;
+            }
+        """)
+
+
+class DialogModifierSeance(QDialog):
+    """Dialogue pour modifier une séance existante."""
+    
+    def __init__(self, parent, emploi_du_temps, seance):
+        super().__init__(parent)
+        self.edt = emploi_du_temps
+        self.seance_originale = seance
+        self.setWindowTitle("✏️ Modifier une séance")
+        self.setMinimumWidth(450)
+        self.init_ui()
+        self._populate_fields()
+        self._apply_style()
+        
+    def init_ui(self):
+        """Initialise l'interface du dialogue."""
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        
+        # Titre
+        title_label = QLabel("✏️ Modifier Séance")
+        title_font = QFont()
+        title_font.setPointSize(14)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_label)
+        
+        # Formulaire
+        form_layout = QFormLayout()
+        layout.addLayout(form_layout)
+        
+        # Matière
+        self.input_matiere = QLineEdit()
+        form_layout.addRow("📚 Matière:", self.input_matiere)
+        
+        # Code matière
+        self.input_code = QLineEdit()
+        form_layout.addRow("🔢 Code:", self.input_code)
+        
+        # Type de cours
+        self.combo_type_cours = QComboBox()
+        self.combo_type_cours.addItems(["cours", "td", "tp"])
+        form_layout.addRow("📖 Type:", self.combo_type_cours)
+        
+        # Enseignant
+        self.input_enseignant = QLineEdit()
+        form_layout.addRow("👨‍🏫 Enseignant:", self.input_enseignant)
+        
+        # Groupe
+        self.input_groupe = QLineEdit()
+        form_layout.addRow("👥 Groupe:", self.input_groupe)
+        
+        # Filière
+        self.input_filiere = QLineEdit()
+        form_layout.addRow("🎓 Filière:", self.input_filiere)
+        
+        # Effectif
+        self.input_effectif = QLineEdit()
+        form_layout.addRow("📊 Effectif:", self.input_effectif)
+        
+        # Salle
+        self.input_salle = QLineEdit()
+        form_layout.addRow("🏛️ Salle:", self.input_salle)
+        
+        # Capacité salle
+        self.input_capacite = QLineEdit()
+        form_layout.addRow("🪑 Capacité:", self.input_capacite)
+        
+        # Type de salle
+        self.combo_type_salle = QComboBox()
+        self.combo_type_salle.addItems(["amphi", "td", "tp", "labo"])
+        form_layout.addRow("🏢 Type salle:", self.combo_type_salle)
+        
+        # Jour
+        self.combo_jour = QComboBox()
+        self.combo_jour.addItems([
+            "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"
+        ])
+        form_layout.addRow("📅 Jour:", self.combo_jour)
+        
+        # Heure début
+        self.input_debut = QLineEdit()
+        self.input_debut.setPlaceholderText("HH:MM (ex: 08:00)")
+        form_layout.addRow("🕐 Heure début:", self.input_debut)
+        
+        # Heure fin
+        self.input_fin = QLineEdit()
+        self.input_fin.setPlaceholderText("HH:MM (ex: 10:00)")
+        form_layout.addRow("🕑 Heure fin:", self.input_fin)
+        
+        # Boutons
+        btn_layout = QHBoxLayout()
+        layout.addLayout(btn_layout)
+        
+        btn_annuler = QPushButton("❌ Annuler")
+        btn_annuler.clicked.connect(self.reject)
+        btn_layout.addWidget(btn_annuler)
+        
+        btn_modifier = QPushButton("✅ Modifier")
+        btn_modifier.clicked.connect(self.modifier_seance)
+        btn_layout.addWidget(btn_modifier)
+        
+    def _populate_fields(self):
+        """Remplit les champs avec les données de la séance actuelle."""
+        seance = self.seance_originale
+        
+        self.input_matiere.setText(seance.matiere.nom)
+        self.input_code.setText(seance.matiere.code)
+        self.combo_type_cours.setCurrentText(seance.matiere.type_cours)
+        
+        self.input_enseignant.setText(seance.enseignant.nom)
+        
+        self.input_groupe.setText(seance.groupe.nom)
+        self.input_filiere.setText(seance.groupe.filiere)
+        self.input_effectif.setText(str(seance.groupe.effectif))
+        
+        self.input_salle.setText(seance.salle.nom)
+        self.input_capacite.setText(str(seance.salle.capacite))
+        self.combo_type_salle.setCurrentText(seance.salle.type_salle)
+        
+        self.combo_jour.setCurrentText(seance.creneau.jour)
+        self.input_debut.setText(seance.creneau.heure_debut.strftime("%H:%M"))
+        self.input_fin.setText(seance.creneau.heure_fin.strftime("%H:%M"))
+        
+    def modifier_seance(self):
+        """Modifie la séance dans l'emploi du temps."""
+        try:
+            # Validation des champs obligatoires
+            if not all([
+                self.input_matiere.text().strip(),
+                self.input_code.text().strip(),
+                self.input_enseignant.text().strip(),
+                self.input_groupe.text().strip(),
+                self.input_filiere.text().strip(),
+                self.input_salle.text().strip(),
+                self.input_debut.text().strip(),
+                self.input_fin.text().strip()
+            ]):
+                QMessageBox.warning(
+                    self, 
+                    "⚠️ Champs manquants",
+                    "Veuillez remplir tous les champs obligatoires."
+                )
+                return
+            
+            # Validation des heures
+            try:
+                h_debut = datetime.strptime(
+                    self.input_debut.text().strip()[:5], "%H:%M"
+                ).time()
+                h_fin = datetime.strptime(
+                    self.input_fin.text().strip()[:5], "%H:%M"
+                ).time()
+            except ValueError:
+                QMessageBox.warning(
+                    self,
+                    "⚠️ Format invalide",
+                    "Le format des heures doit être HH:MM (ex: 08:00)"
+                )
+                return
+            
+            # Validation de l'effectif et capacité
+            try:
+                effectif = int(self.input_effectif.text().strip())
+                capacite = int(self.input_capacite.text().strip())
+            except ValueError:
+                QMessageBox.warning(
+                    self,
+                    "⚠️ Valeur invalide",
+                    "L'effectif et la capacité doivent être des nombres entiers."
+                )
+                return
+            
+            # Supprimer l'ancienne séance
+            self.edt.supprimer_seance(self.seance_originale)
+            
+            # Créer les nouveaux objets
+            creneau = Creneau(
+                self.combo_jour.currentText(),
+                h_debut,
+                h_fin
+            )
+            
+            salle = Salle(
+                self.seance_originale.salle.id_salle,
+                self.input_salle.text().strip(),
+                capacite,
+                self.combo_type_salle.currentText(),
+                self.seance_originale.salle.equipements
+            )
+            
+            groupe = GroupeEtudiant(
+                self.seance_originale.groupe.id_groupe,
+                self.input_groupe.text().strip(),
+                self.input_filiere.text().strip(),
+                effectif
+            )
+            
+            matiere = Matiere(
+                self.input_code.text().strip(),
+                self.input_matiere.text().strip(),
+                self.combo_type_cours.currentText(),
+                self.seance_originale.matiere.heures_par_semaine,
+                self.seance_originale.matiere.equipements_requis
+            )
+            
+            enseignant = Enseignant(
+                self.seance_originale.enseignant.id_enseignant,
+                self.input_enseignant.text().strip(),
+                [matiere],
+                [creneau]
+            )
+            
+            nouvelle_seance = Seance(matiere, enseignant, groupe, salle, creneau)
+            
+            # Ajouter la nouvelle séance
+            self.edt.ajouter_seance(nouvelle_seance)
+            
+            # Message de succès
+            QMessageBox.information(
+                self,
+                "✅ Succès",
+                "La séance a été modifiée avec succès!"
+            )
+            
+            self.accept()
+            
+        except ValueError as e:
+            # Remettre l'ancienne séance si échec
+            try:
+                self.edt.ajouter_seance(self.seance_originale)
+            except:
+                pass
+            QMessageBox.critical(
+                self,
+                "❌ Erreur",
+                f"Impossible de modifier la séance:\n{str(e)}"
+            )
+        except Exception as e:
+            # Remettre l'ancienne séance si échec
+            try:
+                self.edt.ajouter_seance(self.seance_originale)
+            except:
+                pass
+            QMessageBox.critical(
+                self,
+                "❌ Erreur inattendue",
+                f"Une erreur s'est produite:\n{str(e)}"
+            )
+    
+    def _apply_style(self):
+        """Applique un style au dialogue."""
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #f5f5f5;
+            }
+            QLabel {
+                color: #333;
+            }
+            QLineEdit, QComboBox {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background-color: white;
+                min-height: 25px;
+            }
+            QLineEdit:focus, QComboBox:focus {
+                border: 2px solid #2196F3;
+            }
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-height: 35px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:pressed {
+                background-color: #0D47A1;
+            }
+        """)

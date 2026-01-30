@@ -7,9 +7,17 @@ class Administrateur(Utilisateur):
     Administrateur : gère manuellement l'emploi du temps et les réservations.
     """
 
-    def __init__(self, identifiant: int, nom: str, emploi_du_temps):
-        super().__init__(identifiant, nom)
+    def __init__(self, username: str, password: str, emploi_du_temps):
+        super().__init__(username, password)
         self._emploi_du_temps = emploi_du_temps
+
+    # --------------------
+    # Propriétés
+    # --------------------
+    @property
+    def nom(self):
+        """Retourne le nom d'utilisateur pour compatibilité avec l'interface."""
+        return self.username
 
     # --------------------
     # Gestion des séances
