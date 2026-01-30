@@ -5,7 +5,7 @@ from core.seance import Seance
 from core.creneau import Creneau
 from datetime import datetime
 
-DB_FILE = "edt.db"
+DB_FILE = "database.sqlite"
 
 # --------------------
 # Connexion et initialisation
@@ -50,15 +50,37 @@ def initialiser_base():
             )
         """)
         cursor.execute("""
+            CREATE TABLE IF NOT EXISTS Groupe (
+                id INTEGER PRIMARY KEY,
+                nom TEXT NOT NULL,
+                filiere TEXT NOT NULL,
+                effectif INTEGER NOT NULL,
+                niveau TEXT
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS Matiere (
+                code TEXT PRIMARY KEY,
+                nom TEXT NOT NULL,
+                type_seance TEXT NOT NULL,
+                volume_horaire INTEGER NOT NULL,
+                equipements_requis TEXT
+            )
+        """)
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS Seance (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 salle_id INTEGER,
                 enseignant_id INTEGER,
+                groupe_id INTEGER,
+                matiere_code TEXT,
                 jour TEXT,
                 heure_debut TEXT,
                 heure_fin TEXT,
                 FOREIGN KEY(salle_id) REFERENCES Salle(id),
-                FOREIGN KEY(enseignant_id) REFERENCES Enseignant(id)
+                FOREIGN KEY(enseignant_id) REFERENCES Enseignant(id),
+                FOREIGN KEY(groupe_id) REFERENCES Groupe(id),
+                FOREIGN KEY(matiere_code) REFERENCES Matiere(code)
             )
         """)
         conn.commit()
@@ -145,16 +167,62 @@ def charger_enseignants():
 
 
 # --------------------
-# CRUD pour Seance
+# CRUD pour Groupe
 # --------------------
-def sauvegarder_seance(seance: Seance):
+def sauvegarder_groupe(g: GroupeEtudiant):
     with connexion() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO Seance (salle_id, enseignant_id, jour, heure_debut, heure_fin) VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO Groupe (id, nom, filiere, effectif, niveau) VALUES (?, ?, ?, ?, ?)",
+            (g.id, g.nom, g.filiere, g.effectif, g.niveau)
+        )
+        conn.commit()
+
+def charger_groupes():
+    groupes = []
+    with connexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, nom, filiere, effectif, niveau FROM Groupe")
+        for row in cursor.fetchall():
+            groupes.append(GroupeEtudiant(row[0], row[1], row[2], row[3], row[4]))
+    return groupes
+
+# --------------------
+# CRUD pour Matiere
+# --------------------
+def sauvegarder_matiere(m: Matiere):
+    with connexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT OR REPLACE INTO Matiere (code, nom, type_seance, volume_horaire, equipements_requis) VALUES (?, ?, ?, ?, ?)",
+            (m.code, m.nom, m.type_seance, m.volume_horaire, ",".join(m.equipements_requis))
+        )
+        conn.commit()
+
+def charger_matieres():
+    matieres = []
+    with connexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT code, nom, type_seance, volume_horaire, equipements_requis FROM Matiere")
+        for row in cursor.fetchall():
+            equipements = row[4].split(",") if row[4] else []
+            matieres.append(Matiere(row[0], row[1], row[2], row[3], equipements))
+    return matieres
+
+# --------------------
+# CRUD pour Seance
+# --------------------
+def sauvegarder_seance(seance: Seance):
+    from core.matiere import Matiere as M # Eviter import circulaire si possible
+    with connexion() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO Seance (salle_id, enseignant_id, groupe_id, matiere_code, jour, heure_debut, heure_fin) VALUES (?, ?, ?, ?, ?, ?, ?)",
             (
                 seance.salle.id,
                 seance.enseignant.id,
+                seance.groupe.id if seance.groupe else None,
+                seance.matiere.code if seance.matiere else None,
                 seance.creneau.jour,
                 time_to_str(seance.creneau.heure_debut),
                 time_to_str(seance.creneau.heure_fin)
@@ -163,15 +231,18 @@ def sauvegarder_seance(seance: Seance):
         conn.commit()
 
 
-def charger_seances(salles: list, enseignants: list):
+def charger_seances(salles: list, enseignants: list, groupes: list, matieres: list):
     seances = []
     with connexion() as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT salle_id, enseignant_id, jour, heure_debut, heure_fin FROM Seance")
+        cursor.execute("SELECT salle_id, enseignant_id, groupe_id, matiere_code, jour, heure_debut, heure_fin FROM Seance")
         for row in cursor.fetchall():
             salle = next((s for s in salles if s.id == row[0]), None)
             enseignant = next((e for e in enseignants if e.id == row[1]), None)
+            groupe = next((g for g in groupes if g.id == row[2]), None)
+            matiere = next((m for m in matieres if m.code == row[3]), None)
+            
             if salle and enseignant:
-                creneau = Creneau(row[2], str_to_time(row[3]), str_to_time(row[4]))
-                seances.append(Seance(salle, enseignant, None, creneau))
+                creneau = Creneau(row[4], str_to_time(row[5]), str_to_time(row[6]))
+                seances.append(Seance(salle, enseignant, groupe, creneau, matiere))
     return seances
