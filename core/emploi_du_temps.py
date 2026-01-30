@@ -43,6 +43,15 @@ class EmploiDuTemps:
                 ):
                     return True
         return False
+    
+    def supprimer_seance(self, seance: Seance) -> None:
+        """
+        Supprime une séance de l'emploi du temps.
+        """
+        if seance in self._seances:
+            self._seances.remove(seance)
+        else:
+            raise ValueError("La séance spécifiée n'existe pas dans l'emploi du temps.")
 
   
 
