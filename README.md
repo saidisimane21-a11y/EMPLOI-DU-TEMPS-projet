@@ -46,9 +46,18 @@ The application will launch with demo data pre-loaded. You'll see:
 - **Filter Options** (Group, Teacher, Room)
 - **Action Buttons** (Add, Edit, Delete sessions)
 - **Export** functionality
+- **les accounts**
+ - **admin**
+      nom d'utilisateur : admin
+      Password: admin123
+ - **Prof**
+      Nom d'utilisateur : prof
+      Mot de passe: prof123
+ - **Etudiant**
+      Nom d'utilisateur : etudiant
+      Mot de passe : etudiant123
 
 ### User Roles
-
 - **Administrator** - Full access to manage schedules, add/edit/delete sessions
 - **Teacher** - View own schedule and availability
 - **Student** - View group schedule
