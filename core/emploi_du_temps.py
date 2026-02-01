@@ -21,28 +21,25 @@ class EmploiDuTemps:
         """
         Ajoute une séance si aucun conflit n'est détecté.
         """
-        if self.verifier_conflit(nouvelle_seance):
-            raise ValueError(
-                "Conflit détecté : la séance ne peut pas être ajoutée.")
+        conflit = self.verifier_conflit(nouvelle_seance)
+        if conflit:
+            raise ValueError(f"Conflit détecté : {conflit}")
         self._seances.append(nouvelle_seance)
 
-    def verifier_conflit(self, s: Seance) -> bool:
+    def verifier_conflit(self, s: Seance) -> str:
         """
         Vérifie si une séance entre en conflit avec les séances existantes.
-        Conflits possibles :
-        - Même créneau pour la même salle
-        - Même créneau pour le même enseignant
-        - Même créneau pour le même groupe
+        Retourne une chaîne décrivant le conflit, ou None si pas de conflit.
         """
         for existante in self._seances:
             if existante.creneau == s.creneau:
-                if (
-                    existante.salle == s.salle
-                    or existante.enseignant == s.enseignant
-                    or existante.groupe == s.groupe
-                ):
-                    return True
-        return False
+                if existante.salle == s.salle:
+                    return f"La salle '{s.salle.nom}' est déjà occupée."
+                if existante.enseignant == s.enseignant:
+                    return f"L'enseignant '{s.enseignant.nom}' a déjà un cours sur ce créneau."
+                if existante.groupe == s.groupe:
+                    return f"Le groupe '{s.groupe.nom}' a déjà un cours sur ce créneau."
+        return None
     
     def supprimer_seance(self, seance: Seance) -> None:
         """

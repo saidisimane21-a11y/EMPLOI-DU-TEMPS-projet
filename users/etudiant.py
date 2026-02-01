@@ -5,8 +5,8 @@ class Etudiant(Utilisateur):
     Profil étudiant : peut consulter l'emploi du temps de son groupe.
     """
 
-    def __init__(self, username, password, groupe):
-        super().__init__(username, password)
+    def __init__(self, username, password, id, groupe):
+        super().__init__(username, password, id)
         self.groupe = groupe  # instance de core.groupe.GroupeEtudiant
 
     def consulter_emploi_du_temps(self, emploi_du_temps):

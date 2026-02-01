@@ -7,8 +7,8 @@ class Administrateur(Utilisateur):
     Administrateur : gère manuellement l'emploi du temps et les réservations.
     """
 
-    def __init__(self, username: str, password: str, emploi_du_temps):
-        super().__init__(username, password)
+    def __init__(self, username: str, password: str, id: int, emploi_du_temps):
+        super().__init__(username, password, id)
         self._emploi_du_temps = emploi_du_temps
 
     # --------------------

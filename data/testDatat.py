@@ -1,9 +1,55 @@
 from datetime import time
 from core.salle import Salle
-from core.groupe import GroupeEtudiant
+from core.groupe_etudiant import GroupeEtudiant
 from core.matiere import Matiere
 from core.enseignant import Enseignant
 from core.creneau import Creneau
+from core.seance import Seance
+
+def generer_seances(salles, groupes, matieres, enseignants):
+    s = {salle.nom: salle for salle in salles}
+    g = {groupe.nom: groupe for groupe in groupes}
+    m = {matiere.code: matiere for matiere in matieres}
+    e = {enseignant.nom: enseignant for enseignant in enseignants}
+    
+    return [
+        # OK : cours + amphi + projecteur + info
+        Seance(
+            m["MATH1"],
+            e["M. Ait KBIR"],
+            g["G1"],
+            s["Amphi 6"],
+            Creneau("Lundi", time(8, 0), time(10, 0))
+        ),
+
+        # OK
+        Seance(
+            m["PROG1"],
+            e["Mme. Wafae BAIDA"],
+            g["G2"],
+            s["Amphi 5"],
+            Creneau("Mardi", time(10, 0), time(12, 0))
+        ),
+
+        # ✅ CORRECTION ICI
+        Seance(
+            m["BDD"],
+            e["M. JBARI"],
+            g["L3-AD"],           # Informatique
+            s["Amphi 5"],        # amphi + projecteur
+            Creneau("Mercredi", time(14, 0), time(16, 0))
+        ),
+
+        # TP IA → labo OK
+        Seance(
+            m["IA"],
+            e["M. KOUNAIDI"],
+            g["M2-IA"],
+            s["Labo Machine Learning"],
+            Creneau("Jeudi", time(8, 0), time(11, 0))
+        ),
+    ]
+
 
 def generer_salles():
     return [
@@ -55,17 +101,21 @@ def generer_enseignants(matieres):
                   [Creneau("Lundi", time(8, 0), time(18, 0)), Creneau("Mardi", time(8, 0), time(18, 0))]),
     ]
 
+
+
 def obtenir_tout_le_jeu_de_donnees():
     salles = generer_salles()
     groupes = generer_groupes()
     matieres = generer_matieres()
     enseignants = generer_enseignants(matieres)
+    seances = generer_seances(salles, groupes, matieres, enseignants)
     
     return {
         "salles": salles,
         "groupes": groupes,
         "matieres": matieres,
-        "enseignants": enseignants
+        "enseignants": enseignants,
+        "seances": seances
     }
 
 if __name__ == "__main__":

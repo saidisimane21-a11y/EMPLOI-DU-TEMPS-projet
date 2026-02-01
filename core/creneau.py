@@ -34,6 +34,15 @@ class Creneau:
     def heure_fin(self):
         return self._heure_fin
 
+    @property
+    def duree_heures(self):
+        """Retourne la durée du créneau en heures (format décimal)."""
+        import datetime
+        t1 = datetime.datetime.combine(datetime.date.today(), self._heure_debut)
+        t2 = datetime.datetime.combine(datetime.date.today(), self._heure_fin)
+        diff = t2 - t1
+        return diff.total_seconds() / 3600
+
     # --------------------
     # Logique métier
     # --------------------

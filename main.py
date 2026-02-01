@@ -10,8 +10,13 @@ from core.creneau import Creneau
 from core.enseignant import Enseignant
 from core.seance import Seance
 from core.emploi_du_temps import EmploiDuTemps
-from users.administrateur import Administrateur
 from ui.main_window import MainWindow
+from ui.login_window import LoginWindow
+from database.base import get_session, init_db
+from database.repository import SeanceRepository, EnseignantRepository
+from users.administrateur import Administrateur
+from users.enseignant_user import EnseignantUser
+from users.etudiant import Etudiant
 
 # Fix encoding for Windows console
 if sys.platform == "win32":
@@ -19,76 +24,65 @@ if sys.platform == "win32":
 
 
 def init_data():
-    """Initialise les données de démonstration."""
-    # --- Création entités métier ---
-    salle1 = Salle(1, "Amphi 101", 100, "amphi", ["projecteur"])
-    salle2 = Salle(2, "TD 201", 30, "td", ["pc"])
-    salle3 = Salle(3, "TP 301", 30, "tp", ["pc", "réseau"])  # Capacité augmentée à 30
-    
-    groupe1 = GroupeEtudiant(1, "G1 Info", "Informatique", 30)
-    groupe2 = GroupeEtudiant(2, "G2 Info", "Informatique", 25)
-    
-    matiere1 = Matiere("INFO101", "Algorithmique", "cours", 2, ["projecteur"])
-    matiere2 = Matiere("INFO102", "Base de Données", "cours", 2, ["pc"])
-    matiere3 = Matiere("INFO103", "Réseaux", "tp", 2, ["pc", "réseau"])
-    
-    def h(time_str):
-        return datetime.strptime(time_str, "%H:%M").time()
-    
-    # Créneaux variés
-    creneau1 = Creneau("Lundi", h("08:00"), h("10:00"))
-    creneau2 = Creneau("Lundi", h("10:00"), h("12:00"))
-    creneau3 = Creneau("Mardi", h("14:00"), h("16:00"))
-    creneau4 = Creneau("Mercredi", h("08:00"), h("10:00"))
-    creneau5 = Creneau("Jeudi", h("10:00"), h("12:00"))
-    
-    enseignant1 = Enseignant(1, "Dr. Dupont", [matiere1], [creneau1, creneau4])
-    enseignant2 = Enseignant(2, "Mme. Martin", [matiere2], [creneau2, creneau5])
-    enseignant3 = Enseignant(3, "M. Bernard", [matiere3], [creneau3])
-    
-    # Créer l'emploi du temps
-    edt = EmploiDuTemps()
-    
-    # Ajouter plusieurs séances
-    seances = [
-        Seance(matiere1, enseignant1, groupe1, salle1, creneau1),
-        Seance(matiere2, enseignant2, groupe2, salle2, creneau2),
-        Seance(matiere3, enseignant3, groupe1, salle3, creneau3),
-        Seance(matiere1, enseignant1, groupe2, salle1, creneau4),
-        Seance(matiere2, enseignant2, groupe1, salle2, creneau5),
-    ]
-    
-    for seance in seances:
-        try:
-            edt.ajouter_seance(seance)
-        except ValueError as e:
-            print(f"⚠️ Conflit détecté: {e}")
-    
-    return edt
+    """Charge les données depuis la base de données."""
+    init_db()  # Assure que les tables existent
+    session = next(get_session())
+    try:
+        edt = EmploiDuTemps()
+        # Charger les séances depuis la DB
+        seances = SeanceRepository.get_all_domain(session)
+        for s in seances:
+            edt._seances.append(s) # Direct append to bypass conflict check on load if needed
+        return edt
+    finally:
+        session.close()
 
 
 def main():
     """Point d'entrée principal de l'application."""
-    # Créer l'application Qt
     app = QApplication(sys.argv)
-    
-    # Style de l'application
     app.setStyle("Fusion")
     
-    # Initialiser les données
+    # Étape 1: Connexion
+    login_dialog = LoginWindow()
+    if login_dialog.exec() != LoginWindow.Accepted:
+        sys.exit(0)
+        
+    db_user = login_dialog.user
+    
+    # Étape 2: Initialiser les données de l'EDT
     edt = init_data()
     
-    # Créer un utilisateur administrateur (avec l'emploi du temps)
-    admin = Administrateur("admin", "1234", edt)
-    
-    # Créer et afficher la fenêtre principale
-    window = MainWindow(edt, admin)
+    # Étape 3: Créer l'objet utilisateur domaine selon le rôle
+    role = db_user.role
+    if role == "admin":
+        user = Administrateur(db_user.username, "********", db_user.id, edt)
+    elif role == "enseignant":
+        # Trouver l'entité Enseignant correspondante (par nom ou ID si lié)
+        session = next(get_session())
+        # On suppose que nom_complet de l'utilisateur correspond au nom de l'enseignant
+        from database.models import EnseignantModel
+        db_enseig = session.query(EnseignantModel).filter_by(nom=db_user.nom_complet).first()
+        if db_enseig:
+            enseig_domain = EnseignantRepository.get_by_id_domain(session, db_enseig.id)
+        else:
+            # Fallback if not found
+            enseig_domain = Enseignant(1, db_user.nom_complet, [], [])
+        user = EnseignantUser(db_user.username, "********", db_user.id, enseig_domain)
+        session.close()
+    else: # etudiant
+        # L'import de GroupeEtudiant est nécessaire si on veut créer un objet groupe
+        from core.groupe_etudiant import GroupeEtudiant
+        groupe_dummy = GroupeEtudiant(1, "G1", "Informatique", 30)
+        user = Etudiant(db_user.username, "********", db_user.id, groupe_dummy)
+        
+    # Étape 4: Lancer l'interface principale
+    window = MainWindow(edt, user)
     window.show()
     
-    print("✅ Application d'emploi du temps lancée!")
+    print(f"✅ Application lancée pour {db_user.username} ({role})")
     print(f"📊 {len(edt.seances)} séances chargées")
     
-    # Lancer la boucle d'événements
     sys.exit(app.exec())
 
 

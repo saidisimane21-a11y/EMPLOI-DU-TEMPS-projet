@@ -6,12 +6,16 @@ class EnseignantUser(Utilisateur):
     Contient une référence vers l'entité métier Enseignant.
     """
 
-    def __init__(self, username, password, enseignant):
-        super().__init__(username, password)
+    def __init__(self, username, password, id, enseignant):
+        super().__init__(username, password, id)
         self.enseignant = enseignant  # instance de core.enseignant.Enseignant
 
     def consulter_emploi_du_temps(self, emploi_du_temps):
         return emploi_du_temps.seances_par_enseignant(self.enseignant.nom)
+
+    @property
+    def nom(self):
+        return self.enseignant.nom
 
     def demander_reservation(self, salle, creneau):
         """

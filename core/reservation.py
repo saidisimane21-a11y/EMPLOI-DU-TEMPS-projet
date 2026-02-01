@@ -1,24 +1,25 @@
 class Reservation:
     """
-    Représente une demande de réservation d'une salle par un enseignant.
+    Représente une demande de réservation d'une salle par un utilisateur (enseignant ou étudiant).
     """
 
     PENDING = "PENDING"
     ACCEPTED = "ACCEPTED"
     REJECTED = "REJECTED"
 
-    def __init__(self, enseignant, salle, creneau):
-        self._enseignant = enseignant
+    def __init__(self, utilisateur, salle, creneau, motif=""):
+        self._utilisateur = utilisateur
         self._salle = salle
         self._creneau = creneau
+        self._motif = motif
         self._statut = Reservation.PENDING
 
     # --------------------
     # Propriétés (lecture seule)
     # --------------------
     @property
-    def enseignant(self):
-        return self._enseignant
+    def utilisateur(self):
+        return self._utilisateur
 
     @property
     def salle(self):
@@ -27,6 +28,10 @@ class Reservation:
     @property
     def creneau(self):
         return self._creneau
+
+    @property
+    def motif(self):
+        return self._motif
 
     @property
     def statut(self):
@@ -45,9 +50,11 @@ class Reservation:
     # Représentation
     # --------------------
     def __str__(self):
+        role = getattr(self.utilisateur, 'role', 'Utilisateur')
+        nom = getattr(self.utilisateur, 'username', 'Inconnu')
         return (
             f"Réservation({self.salle.nom}, "
             f"{self.creneau}, "
-            f"{self.enseignant.nom}, "
+            f"{role}: {nom}, "
             f"statut={self.statut})"
         )

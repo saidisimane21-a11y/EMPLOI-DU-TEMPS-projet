@@ -1,8 +1,3 @@
-class Scheduler:
-    """
-    Responsable de la génération automatique
-    de l'emploi du temps (à venir).
-    """
 from services.conflict_detector import ConflictDetector
 from core.seance import Seance
 

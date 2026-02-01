@@ -42,11 +42,11 @@ class MainWindow(QMainWindow):
         tabs.addTab(tab_table, "📋 Vue Tableau")
         self._create_table_view(tab_table)
         
-        # Onglet 2: Vue Calendrier (simple)
-        tab_calendar = QWidget()
-        tabs.addTab(tab_calendar, "📅 Vue Calendrier")
-        self._create_calendar_view(tab_calendar)
-        
+        # Onglet 3: Réservations
+        tab_reservations = QWidget()
+        tabs.addTab(tab_reservations, "🏛️ Réservations")
+        self._create_reservations_view(tab_reservations)
+
         # Appliquer le style
         self._apply_style()
         
@@ -126,19 +126,30 @@ class MainWindow(QMainWindow):
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table)
         
-        # --- Boutons d'action ---
-        btn_layout = QHBoxLayout()
-        layout.addLayout(btn_layout)
+        # --- Statistiques et Actions ---
+        bottom_layout = QVBoxLayout()
+        layout.addLayout(bottom_layout)
         
-        # Statistiques
-        self.label_stats = QLabel(f"Total: {len(self.edt.seances)} séances")
-        self.label_stats.setStyleSheet("font-weight: bold; color: #2196F3;")
-        btn_layout.addWidget(self.label_stats)
-        
-        btn_layout.addStretch()
-        
-        # Boutons d'action (pour Admin)
+        # Statistiques et Export (Seulement pour Admin)
         if isinstance(self.utilisateur, Administrateur):
+            # Barre de stats plus riche
+            self.stats_container = QHBoxLayout()
+            bottom_layout.addLayout(self.stats_container)
+            
+            self.label_total_seances = QLabel("Seances: 0")
+            self.label_total_heures = QLabel("Heures: 0h")
+            self.label_total_groupes = QLabel("Groupes: 0")
+            
+            for lbl in [self.label_total_seances, self.label_total_heures, self.label_total_groupes]:
+                lbl.setStyleSheet("font-weight: bold; color: #1976D2; background: #e3f2fd; padding: 5px 15px; border-radius: 10px;")
+                self.stats_container.addWidget(lbl)
+            
+            self.stats_container.addStretch()
+            
+            btn_layout = QHBoxLayout()
+            bottom_layout.addLayout(btn_layout)
+            btn_layout.addStretch()
+            
             self.btn_ajouter = QPushButton("➕ Ajouter")
             self.btn_ajouter.setMinimumHeight(35)
             self.btn_ajouter.clicked.connect(self.ouvrir_dialog_ajout_seance)
@@ -152,29 +163,24 @@ class MainWindow(QMainWindow):
             self.btn_supprimer = QPushButton("🗑️ Supprimer")
             self.btn_supprimer.setMinimumHeight(35)
             self.btn_supprimer.setStyleSheet("""
-                QPushButton {
-                    background-color: #f44336;
-                }
-                QPushButton:hover {
-                    background-color: #d32f2f;
-                }
+                QPushButton { background-color: #f44336; }
+                QPushButton:hover { background-color: #d32f2f; }
             """)
             self.btn_supprimer.clicked.connect(self.supprimer_seance)
             btn_layout.addWidget(self.btn_supprimer)
-        
-        # Bouton Exporter (pour tous)
-        self.btn_exporter = QPushButton("📥 Exporter")
-        self.btn_exporter.setMinimumHeight(35)
-        self.btn_exporter.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-            }
-            QPushButton:hover {
-                background-color: #388E3C;
-            }
-        """)
-        self.btn_exporter.clicked.connect(self.exporter_emploi_du_temps)
-        btn_layout.addWidget(self.btn_exporter)
+            
+            # Bouton Exporter
+            self.btn_exporter = QPushButton("📥 Exporter")
+            self.btn_exporter.setMinimumHeight(35)
+            self.btn_exporter.setStyleSheet("""
+                QPushButton { background-color: #4CAF50; }
+                QPushButton:hover { background-color: #388E3C; }
+            """)
+            self.btn_exporter.clicked.connect(self.exporter_emploi_du_temps)
+            btn_layout.addWidget(self.btn_exporter)
+        else:
+            # Pour les non-admins, on n'affiche rien dans bottom_layout ou on met un stretch
+            bottom_layout.addStretch()
             
         # Affichage initial
         self.afficher_emploi_du_temps()
@@ -243,12 +249,124 @@ class MainWindow(QMainWindow):
         self.calendar_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.calendar_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         
+    def _create_reservations_view(self, parent):
+        """Crée la vue pour gérer les réservations."""
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        
+        # En-tête de l'onglet
+        header_layout = QHBoxLayout()
+        layout.addLayout(header_layout)
+        
+        label = QLabel("🏛️ Gestion des Réservations")
+        label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        header_layout.addWidget(label)
+        
+        header_layout.addStretch()
+        
+        # Bouton Nouvelle Réservation (pour tous sauf Admin qui peut-être ?)
+        # En fait, tous peuvent réserver, mais l'admin approuve.
+        self.btn_reserver_salle = QPushButton("📅 Réserver une salle")
+        self.btn_reserver_salle.setMinimumHeight(35)
+        self.btn_reserver_salle.clicked.connect(self.ouvrir_dialog_reservation)
+        header_layout.addWidget(self.btn_reserver_salle)
+        
+        # Table des réservations
+        self.table_reservations = QTableWidget()
+        self.table_reservations.setColumnCount(6)
+        self.table_reservations.setHorizontalHeaderLabels([
+            "Utilisateur", "Rôle", "Salle", "Jour", "Horaire", "Statut"
+        ])
+        self.table_reservations.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.table_reservations)
+        
+        # Boutons d'action Admin (Approuver/Rejeter)
+        if isinstance(self.utilisateur, Administrateur):
+            admin_btn_layout = QHBoxLayout()
+            layout.addLayout(admin_btn_layout)
+            
+            self.btn_approuver = QPushButton("✅ Approuver")
+            self.btn_approuver.setStyleSheet("background-color: #4CAF50;")
+            self.btn_approuver.clicked.connect(lambda: self._gerer_reservation('acceptee'))
+            admin_btn_layout.addWidget(self.btn_approuver)
+            
+            self.btn_rejeter = QPushButton("❌ Rejeter")
+            self.btn_rejeter.setStyleSheet("background-color: #f44336;")
+            self.btn_rejeter.clicked.connect(lambda: self._gerer_reservation('rejetee'))
+            admin_btn_layout.addWidget(self.btn_rejeter)
+        
+        # Charger les données initiales
+        self.charger_reservations()
+
+    def charger_reservations(self):
+        """Charge les réservations depuis la base de données."""
+        from database.base import get_session
+        from database.repository import ReservationRepository
+        session = next(get_session())
+        try:
+            if isinstance(self.utilisateur, Administrateur):
+                reservations = ReservationRepository.get_all(session)
+            else:
+                reservations = ReservationRepository.get_by_user(session, self.utilisateur.id)
+            
+            self.table_reservations.setRowCount(len(reservations))
+            for i, res in enumerate(reservations):
+                self.table_reservations.setItem(i, 0, QTableWidgetItem(res.utilisateur.username))
+                self.table_reservations.setItem(i, 1, QTableWidgetItem(res.utilisateur.role))
+                self.table_reservations.setItem(i, 2, QTableWidgetItem(res.salle.nom))
+                self.table_reservations.setItem(i, 3, QTableWidgetItem(res.creneau.jour))
+                
+                horaire = f"{res.creneau.heure_debut.strftime('%H:%M')} - {res.creneau.heure_fin.strftime('%H:%M')}"
+                self.table_reservations.setItem(i, 4, QTableWidgetItem(horaire))
+                
+                item_statut = QTableWidgetItem(res.statut)
+                # Couleur selon statut
+                if res.statut == 'acceptee': item_statut.setForeground(QColor("green"))
+                elif res.statut == 'rejetee': item_statut.setForeground(QColor("red"))
+                else: item_statut.setForeground(QColor("orange"))
+                
+                self.table_reservations.setItem(i, 5, item_statut)
+                
+                # Attacher l'ID pour les actions admin
+                self.table_reservations.item(i, 0).setData(Qt.ItemDataRole.UserRole, res.id)
+                
+        finally:
+            session.close()
+
+    def ouvrir_dialog_reservation(self):
+        """Ouvre le dialogue de réservation."""
+        from ui.dialogs import DialogReservation
+        dialog = DialogReservation(self, self.utilisateur)
+        if dialog.exec():
+            self.charger_reservations()
+
+    def _gerer_reservation(self, nouveau_statut):
+        """Approuve ou rejette une réservation (Admin)."""
+        selected_row = self.table_reservations.currentRow()
+        if selected_row < 0:
+            QMessageBox.warning(self, "⚠️ Sélection requise", "Sélectionnez une réservation.")
+            return
+        
+        res_id = self.table_reservations.item(selected_row, 0).data(Qt.ItemDataRole.UserRole)
+        
+        from database.base import get_session
+        from database.repository import ReservationRepository
+        session = next(get_session())
+        try:
+            ReservationRepository.update_status(session, res_id, nouveau_statut)
+            session.commit()
+            QMessageBox.information(self, "✅ Mis à jour", f"Réservation {nouveau_statut}.")
+            self.charger_reservations()
+        finally:
+            session.close()
+
     def afficher_emploi_du_temps(self):
         """Affiche l'emploi du temps avec les filtres appliqués."""
         seances = self._get_filtered_seances()
         
-        # Mise à jour des statistiques
-        self.label_stats.setText(f"Affichage: {len(seances)} / {len(self.edt.seances)} séances")
+        if isinstance(self.utilisateur, Administrateur):
+            # Mise à jour des statistiques
+            self.mettre_a_jour_stats(seances)
         
         # Remplir la table
         self.table.setRowCount(len(seances))
@@ -283,6 +401,16 @@ class MainWindow(QMainWindow):
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+
+    def mettre_a_jour_stats(self, seances):
+        """Met à jour les labels de statistiques."""
+        total_seances = len(seances)
+        total_heures = sum(s.creneau.duree_heures for s in seances)
+        total_groupes = len({s.groupe.nom for s in seances})
+        
+        self.label_total_seances.setText(f"📊 Séances: {total_seances}")
+        self.label_total_heures.setText(f"🕒 Total: {total_heures}h")
+        self.label_total_groupes.setText(f"👥 Groupes: {total_groupes}")
         
     def ouvrir_dialog_ajout_seance(self):
         """Ouvre le dialogue pour ajouter une séance."""
@@ -353,12 +481,30 @@ class MainWindow(QMainWindow):
         )
         
         if reply == QMessageBox.StandardButton.Yes:
-            self.edt.supprimer_seance(seance)
-            QMessageBox.information(
-                self,
-                "✅ Succès",
-                "La séance a été supprimée avec succès."
-            )
+            # --- Persistence ---
+            from database.base import get_session
+            from database.repository import SeanceRepository
+            session = next(get_session())
+            try:
+                # Find and delete from DB
+                success = SeanceRepository.delete_by_details(session, seance)
+                if success:
+                    self.edt.supprimer_seance(seance)
+                    QMessageBox.information(
+                        self,
+                        "✅ Succès",
+                        "La séance a été supprimée avec succès du calendrier et de la base de données."
+                    )
+                else:
+                    # If not found in DB via details, maybe try to just remove from domain
+                    self.edt.supprimer_seance(seance)
+                    QMessageBox.warning(self, "Avertissement", "Séance supprimée du calendrier mais introuvable en base.")
+            except Exception as e:
+                session.rollback()
+                QMessageBox.critical(self, "Erreur", f"Erreur lors de la suppression en base : {e}")
+            finally:
+                session.close()
+
             self.afficher_emploi_du_temps()
             self._fill_calendar()
             self._update_filters()
@@ -375,6 +521,8 @@ class MainWindow(QMainWindow):
         if not file_path:
             return
         
+        seances_a_exporter = self._get_filtered_seances()
+        
         try:
             with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
                 writer = csv.writer(csvfile)
@@ -384,16 +532,16 @@ class MainWindow(QMainWindow):
                                 'Filière', 'Salle', 'Type Salle', 'Jour', 'Heure Début', 'Heure Fin'])
                 
                 # Données
-                for seance in self.edt.seances:
+                for seance in seances_a_exporter:
                     writer.writerow([
                         seance.matiere.nom,
                         seance.matiere.code,
-                        seance.matiere.type_cours,
+                        seance.matiere.type_seance,
                         seance.enseignant.nom,
                         seance.groupe.nom,
                         seance.groupe.filiere,
                         seance.salle.nom,
-                        seance.salle.type_salle,
+                        seance.salle.type,
                         seance.creneau.jour,
                         seance.creneau.heure_debut.strftime('%H:%M'),
                         seance.creneau.heure_fin.strftime('%H:%M')
@@ -402,7 +550,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "✅ Succès",
-                f"L'emploi du temps a été exporté avec succès vers:\n{file_path}"
+                f"L'emploi du temps ({len(seances_a_exporter)} séances) a été exporté avec succès vers:\n{file_path}"
             )
         except Exception as e:
             QMessageBox.critical(

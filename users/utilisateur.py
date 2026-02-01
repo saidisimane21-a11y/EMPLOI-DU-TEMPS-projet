@@ -4,15 +4,25 @@ class Utilisateur:
     Chaque utilisateur peut consulter son emploi du temps.
     """
 
-    def __init__(self, username: str, password: str):
+    def __init__(self, username: str, password: str, id: int = None):
         self._username = username
         self._password = password  # Pour un vrai projet, stocker un hash !
+        self._id = id
 
     # --------------------
     # Propriétés
     # --------------------
     @property
     def username(self):
+        return self._username
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def nom(self):
+        """Retourne le nom d'affichage de l'utilisateur."""
         return self._username
 
     # --------------------
