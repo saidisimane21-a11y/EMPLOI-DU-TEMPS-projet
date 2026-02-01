@@ -4,13 +4,15 @@ A modern schedule management application built with Python and PySide6 for educa
 
 ## ✨ Features
 
-- 📊 **Visual Schedule Management** - Table and calendar views
-- 🔍 **Smart Filtering** - Filter by group, teacher, or room
-- ⚠️ **Conflict Detection** - Automatic scheduling conflict detection
-- 📁 **CSV Export** - Export schedules to CSV format
-- 👥 **User Roles** - Administrator, Teacher, and Student roles
-- 🎨 **Modern UI** - Clean, intuitive interface with custom styling
-- 🤖 **Auto-Scheduling** - Greedy algorithm for automatic schedule generation
+- 📊 **Dynamic Dashboard (Admin)** - Real-time statistics on sessions, hours, and groups.
+- 📋 **Visual Schedule Management** - Professional table view with color-coding.
+- 🏛️ **Reservation System** - Room booking requests for students/teachers with admin approval workflow.
+- 🔍 **Smart Filtering** - Filter schedules by group, teacher, or room.
+- ⚠️ **Smart Conflict Detection** - Prevents double bookings with detailed error messages.
+- � **CSV Export (Admin)** - Export filtered schedules to CSV format for Excel.
+- 👥 **Role-Based Access** - Distinct interfaces for Administrators, Teachers, and Students.
+- 🎨 **Modern UI** - Clean, intuitive interface with custom styling and animations.
+- 🗄️ **Database Persistence** - Integrated with SQLite using SQLAlchemy ORM.
 
 ## 🚀 Quick Start
 
@@ -38,36 +40,24 @@ A modern schedule management application built with Python and PySide6 for educa
 
 ## 📖 Usage
 
-### Running the Application
+### User Roles & Login
 
-The application will launch with demo data pre-loaded. You'll see:
+- **Administrator**: Access to all management tools (Add/Edit/Delete), Dashboard Stats, and CSV Export.
+- **Teacher**: View personalized schedule and request room reservations.
+- **Student**: View group schedule and request room reservations.
 
-- **Main Window** with schedule display
-- **Filter Options** (Group, Teacher, Room)
-- **Action Buttons** (Add, Edit, Delete sessions)
-- **Export** functionality
+### Key Workflows
 
-### User Roles
+1. **Managing Sessions (Admin)**: Use the "Ajouter", "Modifier", or "Supprimer" buttons in the Table view.
+2. **Room Booking**: Go to the "Réservations" tab to request a room. Admins can approve or reject these from the same tab.
+3. **Filtering**: Use the dropdown menus at the top to narrow down the schedule.
+4. **Data Export (Admin)**: Click "Exporter CSV" at the bottom of the table view to save the current filtered view.
 
-- **Administrator** - Full access to manage schedules, add/edit/delete sessions
-- **Teacher** - View own schedule and availability
-- **Student** - View group schedule
-
-### Managing Sessions
-
-1. **Add Session**: Click "Ajouter Séance" button
-2. **Edit Session**: Select a session and click "Modifier"
-3. **Delete Session**: Select a session and click "Supprimer"
-4. **Export**: Click "Exporter CSV" to save schedule
-
-## 🧪 Running Tests
+## 🧪 Testing
 
 ```bash
 # Run all tests
 python -m pytest tests/ -v
-
-# Run with coverage
-python -m pytest tests/ --cov=core --cov=services --cov=ui
 ```
 
 ## 📁 Project Structure
@@ -75,98 +65,39 @@ python -m pytest tests/ --cov=core --cov=services --cov=ui
 ```
 EMPLOI-DU-TEMPS-projet/
 ├── core/              # Domain models (Salle, Matiere, Enseignant, etc.)
-├── users/             # User management (Administrateur, Etudiant, etc.)
-├── ui/                # PySide6 interface components
-├── services/          # Business logic (Scheduler, ConflictDetector)
-├── data/              # Test data generators
-├── tests/             # Unit tests
+├── users/             # Domain user classes (Administrateur, Etudiant, etc.)
+├── ui/                # PySide6 interface (Windows, Dialogs, Widgets)
+├── database/          # Persistence layer (SQLAlchemy Models, Repositories)
+├── services/          # Business logic and algorithms
+├── tests/             # Unit and integration tests
 ├── main.py            # Application entry point
-└── requirements.txt   # Python dependencies
+└── requirements.txt   # Project dependencies
 ```
 
-## 🔧 Configuration
+## 🎨 Design System
 
-### Demo Data
+### Colors & Styling
+The application uses a customized theme based on the PySide6 Fusion style:
+- 🔵 **Lectures (cours)** - Professional blue
+- � **Tutorials (td)** - Vibrant orange
+- 🟢 **Labs (tp)** - Success green
 
-The application includes test data in `data/testDatat.py`. To customize:
+### Conflict Messages
+The system provides specific feedback for conflicts:
+- *"La salle 'Amphi 101' est déjà occupée."*
+- *"L'enseignant 'Dr. Dupont' a déjà un cours sur ce créneau."*
 
-- Edit room definitions in `generer_salles()`
-- Modify courses in `generer_matieres()`
-- Update teacher data in `generer_enseignants()`
+## �️ Built With
 
-### Database (Coming Soon)
-
-Database persistence is currently in development. For now, data is stored in memory.
-
-## 🎨 Customization
-
-### Themes
-
-The application uses PySide6's Fusion style. To change:
-
-```python
-# In main.py
-app.setStyle("Windows")  # or "Fusion", "WindowsVista", etc.
-```
-
-### Colors
-
-Session cards are color-coded by course type:
-- 🔵 **Blue** - Lectures (cours)
-- 🟠 **Orange** - Tutorial sessions (td)
-- 🟢 **Green** - Practical sessions (tp)
-
-Edit in `ui/widgets.py` → `SeanceCard._apply_style()`
-
-## 🛠️ Development
-
-### Adding New Features
-
-1. **Domain Models** → Add to `core/`
-2. **UI Components** → Add to `ui/`
-3. **Business Logic** → Add to `services/`
-4. **Tests** → Add to `tests/`
-
-### Code Style
-
-- Follow PEP 8 guidelines
-- Use type hints where possible
-- Add docstrings for classes and methods
-
-## 📝 Known Issues
-
-- Database persistence not yet implemented
-- Login screen in development
-- Reservation approval workflow pending
-
-## 🗺️ Roadmap
-
-- [ ] Database integration with SQLAlchemy
-- [ ] Login/authentication system
-- [ ] Reservation management UI
-- [ ] PDF export functionality
-- [ ] Multi-semester planning
-- [ ] iCalendar export
-
-## 👥 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+- **Python 3.x** - Core language
+- **PySide6** - GUI framework (Qt for Python)
+- **SQLAlchemy** - Database ORM
+- **Bcrypt** - Secure password hashing
+- **SQLite** - Local database storage
 
 ## 📄 License
 
-This project is for educational purposes.
-
-## 🆘 Support
-
-For issues or questions, please create an issue in the repository.
-
-## 👨‍💻 Authors
-
-Developed as part of an academic project for schedule management.
+This project is for educational purposes as part of an academic schedule management development.
 
 ---
 
